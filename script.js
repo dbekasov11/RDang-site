@@ -27,7 +27,6 @@ const cursor = document.querySelector('.cursor');
 let mouseX = 0, mouseY = 0, posX = 0, posY = 0;
 let isCursorVisible = false;
 
-
 document.addEventListener('mousemove', e => {
     mouseX = e.clientX;
     mouseY = e.clientY;
@@ -40,7 +39,6 @@ document.addEventListener('mousemove', e => {
     }
 });
 
-
 document.addEventListener('mouseleave', () => {
     cursor.style.opacity = '0';
     isCursorVisible = false;
@@ -49,7 +47,6 @@ document.addEventListener('mouseleave', () => {
 document.addEventListener('mouseenter', () => {
     cursor.style.opacity = '1';
 });
-
 
 function animateCursor() {
     if (isCursorVisible) {
@@ -62,38 +59,45 @@ function animateCursor() {
 animateCursor();
 
 const PLUGIN_ID = 28720;
+const PROXY = "https://api.allorigins.win/raw?url=";
 
 async function updateStats() {
     try {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        const sRes = await fetch(`https://bstats.org/api/v1/plugins/${PLUGIN_ID}/charts/servers/data`);
+        const sUrl = `https://bstats.org/api/v1/plugins/${PLUGIN_ID}/charts/servers/data`;
+        const sRes = await fetch(PROXY + encodeURIComponent(sUrl));
         const sData = await sRes.json();
         
-        if (sData && sData.length > 0) {
+        if (sData && Array.isArray(sData) && sData.length > 0) {
             const currentServers = sData[sData.length - 1][1];
-            const recordServers = Math.max(...sData.map(e => e[1]));
-            
+            let maxServers = 0;
+            for (let i = 0; i < sData.length; i++) {
+                if (sData[i][1] > maxServers) maxServers = sData[i][1];
+            }
             document.getElementById('serv-curr').innerText = currentServers;
-            document.getElementById('serv-rec').innerText = recordServers;
+            document.getElementById('serv-rec').innerText = maxServers;
         }
 
-        const pRes = await fetch(`https://bstats.org/api/v1/plugins/${PLUGIN_ID}/charts/players/data`);
+        const pUrl = `https://bstats.org/api/v1/plugins/${PLUGIN_ID}/charts/players/data`;
+        const pRes = await fetch(PROXY + encodeURIComponent(pUrl));
         const pData = await pRes.json();
         
-        if (pData && pData.length > 0) {
+        if (pData && Array.isArray(pData) && pData.length > 0) {
             const currentPlayers = pData[pData.length - 1][1];
-            const recordPlayers = Math.max(...pData.map(e => e[1]));
-            
+            let maxPlayers = 0;
+            for (let i = 0; i < pData.length; i++) {
+                if (pData[i][1] > maxPlayers) maxPlayers = pData[i][1];
+            }
             document.getElementById('play-curr').innerText = currentPlayers;
-            document.getElementById('play-rec').innerText = recordPlayers;
+            document.getElementById('play-rec').innerText = maxPlayers;
         }
     } catch (e) {
-        console.error("Ошибка при получении данных bStats:", e);
-        document.querySelectorAll('.stat-value, .record-value').forEach(el => {
-            if (el.querySelector('.loading-dots')) {
-                el.innerText = "0";
-            }
+        console.error("bStats Error:", e);
+        const ids = ['serv-curr', 'serv-rec', 'play-curr', 'play-rec'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = "0";
         });
     }
 }
+
 updateStats();
